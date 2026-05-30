@@ -32,6 +32,8 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
+            /* Убираем серую вспышку при нажатиях на iOS */
+            -webkit-tap-highlight-color: transparent;
         }
 
         .container {
@@ -50,46 +52,46 @@
             color: var(--primary);
         }
 
-        /* Системные анимации */
+        /* 3D-анимации для аппаратного ускорения на iOS */
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(12px);
+                transform: translate3d(0, 12px, 0);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translate3d(0, 0, 0);
             }
         }
 
         @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-4px); }
-            75% { transform: translateX(4px); }
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            25% { transform: translate3d(-4px, 0, 0); }
+            75% { transform: translate3d(4px, 0, 0); }
         }
 
         @keyframes pulse-success {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            50% { transform: scale(1.015); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            0% { transform: scale3d(1, 1, 1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { transform: scale3d(1.015, 1.015, 1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale3d(1, 1, 1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
         @keyframes pulse-danger {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            50% { transform: scale(1.015); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            0% { transform: scale3d(1, 1, 1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { transform: scale3d(1.015, 1.015, 1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { transform: scale3d(1, 1, 1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
 
         @keyframes slideDownBounce {
-            0% { transform: translateY(-10px) scale(0.97); opacity: 0; }
-            70% { transform: translateY(1px) scale(1.005); opacity: 1; }
-            100% { transform: translateY(0) scale(1); opacity: 1; }
+            0% { transform: translate3d(0, -10px, 0) scale3d(0.97, 0.97, 1); opacity: 0; }
+            70% { transform: translate3d(0, 1px, 0) scale3d(1.005, 1.005, 1); opacity: 1; }
+            100% { transform: translate3d(0, 0, 0) scale3d(1, 1, 1); opacity: 1; }
         }
 
         @keyframes counterPop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.4); color: var(--danger); }
-            100% { transform: scale(1); }
+            0% { transform: scale3d(1, 1, 1); }
+            50% { transform: scale3d(1.4, 1.4, 1); color: var(--danger); }
+            100% { transform: scale3d(1, 1, 1); }
         }
 
         #uploadScreen, #quizScreen, #resultsScreen {
@@ -176,6 +178,7 @@
         #errorCounter {
             display: inline-block;
             transition: transform 0.2s, color 0.2s;
+            will-change: transform;
         }
 
         .error-pop {
@@ -198,6 +201,7 @@
             font-size: 12px;
             outline: none;
             transition: border-color 0.15s;
+            -webkit-appearance: none; /* Фикс стиля ввода iOS */
         }
 
         .goto-input:focus {
@@ -206,8 +210,8 @@
 
         /* Вопрос и варианты ответов */
         .question-card {
-            /* Перелистывание карточки */
             animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
         }
 
         .question-meta {
@@ -241,29 +245,33 @@
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
             align-items: center;
+            /* Отключаем стандартный стиль кнопок iOS */
+            -webkit-appearance: none;
+            appearance: none;
+            will-change: transform, opacity;
         }
 
         .option-btn:hover:not(:disabled) {
             border-color: var(--primary);
             background-color: #faf5ff;
-            transform: translateY(-1px);
+            transform: translate3d(0, -1px, 0);
         }
 
         .option-btn:active:not(:disabled) {
-            transform: scale(0.985);
+            transform: scale3d(0.985, 0.985, 1);
         }
 
         /* Затухание неотвеченных вариантов при выводе правильного */
         .option-btn:disabled:not(.correct):not(.incorrect) {
             opacity: 0.55;
-            transform: scale(0.98);
+            transform: scale3d(0.98, 0.98, 1);
         }
 
         .option-btn:disabled {
             cursor: not-allowed;
         }
 
-        /* Мягкие пульсирующие анимации для верных/неверных кнопок */
+        /* Анимации для верных/неверных кнопок */
         .option-btn.correct {
             background-color: var(--success-light);
             border-color: var(--success);
@@ -298,6 +306,7 @@
             text-align: center;
             display: none;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            will-change: transform, opacity;
         }
 
         .feedback-message.success {
@@ -329,10 +338,12 @@
             cursor: pointer;
             font-size: 15px;
             transition: all 0.15s ease;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .btn:active:not(:disabled) {
-            transform: scale(0.97);
+            transform: scale3d(0.97, 0.97, 1);
         }
 
         .btn-primary {
@@ -368,6 +379,8 @@
             color: var(--text-secondary);
             font-size: 13px;
             padding: 8px 16px;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .btn-outline:hover:not(:disabled) {
@@ -414,7 +427,8 @@
         }
     </style>
 </head>
-<body>
+<!-- ontouchstart="" принудительно включает псевдокласс :active на iOS устройствах -->
+<body ontouchstart="">
 
 <div class="container">
     <!-- ЭКРАН ЗАГРУЗКИ ФАЙЛА -->
@@ -699,11 +713,10 @@
 
         const q = questions[currentIndex];
 
-        // Анимация обновления контента внутри карточки вопроса
+        // Анимация обновления контента внутри карточки вопроса (с 3D-ускорением)
         questionCard.style.animation = 'none';
-        // Триггер перерисовки анимации
-        questionCard.offsetHeight;
-        questionCard.style.animation = 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+        questionCard.offsetHeight; // триггер перерисовки
+        questionCard.style.animation = 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards';
 
         // Обновление прогресс-бара
         const progressPercent = (currentIndex / questions.length) * 100;
@@ -769,7 +782,7 @@
             btn.disabled = true;
             const optNum = index + 1;
             if (optNum === q.correct) {
-                // Добавляем класс 'animated' для воспроизведения плавной пульсации
+                // Добавляем класс 'animated' для запуска плавного WebKit-совместимого импульса
                 btn.classList.add('correct', 'animated');
             } else if (optNum === selectedNum) {
                 btn.classList.add('incorrect', 'animated');
