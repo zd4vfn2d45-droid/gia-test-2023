@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тестирование ГИА</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --text-secondary: #4b5563;
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --warning: #f59e0b;
+            --warning-hover: #d97706;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-top: 0;
+            text-align: center;
+            color: var(--primary);
+        }
+
+        /* Верхняя панель быстрых действий */
+        .utility-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        /* Экран загрузки файла */
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .upload-section:hover {
+            border-color: var(--primary);
+        }
+
+        .upload-btn {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.2s;
+        }
+
+        .upload-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Элементы прогресса */
+        .progress-container {
+            margin-bottom: 20px;
+        }
+
+        .progress-bar-bg {
+            background-color: var(--border);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background-color: var(--primary);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        /* Вопрос и варианты ответов */
+        .question-meta {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            font-weight: bold;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: left;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background-color: #faf5ff;
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .option-btn.correct {
+            background-color: var(--success-light);
+            border-color: var(--success);
+            color: #065f46;
+            font-weight: 600;
+        }
+
+        .option-btn.incorrect {
+            background-color: var(--danger-light);
+            border-color: var(--danger);
+            color: #991b1b;
+        }
+
+        /* Обратная связь и кнопка навигации */
+        .feedback-area {
+            margin-top: 20px;
+            min-height: 50px;
+        }
+
+        .feedback-message {
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+        }
+
+        .feedback-message.success {
+            background-color: var(--success-light);
+            color: var(--success);
+            display: block;
+        }
+
+        .feedback-message.danger {
+            background-color: var(--danger-light);
+            color: var(--danger);
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #d1d5db;
+        }
+
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: var(--warning-hover);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 13px;
+            padding: 8px 16px;
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Экран результатов */
+        .results-screen {
+            text-align: center;
+        }
+
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #faf5ff;
+            border: 4px solid var(--primary);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 20px auto;
+        }
+
+        .score-num {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- ЭКРАН ЗАГРУЗКИ ФАЙЛА -->
+    <div id="uploadScreen">
+        <h1>Подготовка к тестированию</h1>
+        <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" style="color: var(--text-secondary)">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+            <p style="margin: 10px 0 5px; font-weight: 600;">Выберите файл вопросов questions.json</p>
+            <span style="font-size: 12px; color: var(--text-secondary);">или кликните для обзора файлов</span>
+            <button class="upload-btn">Загрузить JSON</button>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+        <div id="resumeContainer" class="hidden" style="margin-top: 25px; text-align: center; padding-top: 20px; border-top: 1px solid var(--border);">
+            <p style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Найден сохраненный прогресс для предыдущего теста.</p>
+            <button class="btn btn-primary" id="resumeBtn">Продолжить тест</button>
+            <button class="btn btn-secondary" id="clearSaveBtn" style="margin-left: 10px;">Сбросить память</button>
+        </div>
+    </div>
+
+    <!-- ЭКРАН ТЕСТА -->
+    <div id="quizScreen" class="hidden">
+        <!-- Панель управления -->
+        <div class="utility-bar">
+            <button class="btn btn-outline" id="downloadLiveBtn" disabled>Скачать ошибки (0)</button>
+            <button class="btn btn-outline" id="saveExitBtn">Сохранить и выйти</button>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar-bg">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="stats">
+                <span id="questionCounter">Вопрос 0/0</span>
+                <span>Ошибок: <strong id="errorCounter" style="color: var(--danger)">0</strong></span>
+            </div>
+        </div>
+
+        <div class="question-card">
+            <div class="question-meta" id="questionId">ID: 0000</div>
+            <div class="question-text" id="questionText">Текст вопроса</div>
+            <div class="options-list" id="optionsList">
+                <!-- Варианты ответов генерируются JS -->
+            </div>
+        </div>
+
+        <div class="feedback-area">
+            <div class="feedback-message" id="feedbackMessage"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" id="prevBtn">Назад</button>
+            <button class="btn btn-warning hidden" id="resetBtn">Сбросить ответ</button>
+            <button class="btn btn-primary" id="nextBtn" disabled>Дальше</button>
+        </div>
+    </div>
+
+    <!-- ЭКРАН РЕЗУЛЬТАТОВ -->
+    <div id="resultsScreen" class="hidden" class="results-screen">
+        <h1>Тестирование завершено!</h1>
+        <div class="score-circle">
+            <div class="score-num" id="finalScore">0/0</div>
+            <div class="score-label">решено верно</div>
+        </div>
+        <p id="accuracyText" style="font-weight: 600; margin-bottom: 24px; color: var(--text-secondary);">Точность: 0%</p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button class="btn btn-primary" id="downloadMistakesBtn">Скачать ошибки (.json)</button>
+            <button class="btn btn-secondary" id="restartBtn">Начать заново</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Состояние приложения
+    let questions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let mistakes = [];
+    let userAnswers = {};
+    let isAnswered = false;
+    let activeFileName = "questions.json";
+
+    // Элементы DOM
+    const fileInput = document.getElementById('fileInput');
+    const uploadScreen = document.getElementById('uploadScreen');
+    const quizScreen = document.getElementById('quizScreen');
+    const resultsScreen = document.getElementById('resultsScreen');
+    const resumeContainer = document.getElementById('resumeContainer');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const clearSaveBtn = document.getElementById('clearSaveBtn');
+
+    const progressBar = document.getElementById('progressBar');
+    const questionCounter = document.getElementById('questionCounter');
+    const errorCounter = document.getElementById('errorCounter');
+    const questionId = document.getElementById('questionId');
+    const questionText = document.getElementById('questionText');
+    const optionsList = document.getElementById('optionsList');
+    const feedbackMessage = document.getElementById('feedbackMessage');
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const saveExitBtn = document.getElementById('saveExitBtn');
+    const downloadLiveBtn = document.getElementById('downloadLiveBtn');
+    const downloadMistakesBtn = document.getElementById('downloadMistakesBtn');
+    const restartBtn = document.getElementById('restartBtn');
+
+    const finalScore = document.getElementById('finalScore');
+    const accuracyText = document.getElementById('accuracyText');
+
+    // Автоматическая подгрузка вопросов из файла questions.json при открытии
+    window.addEventListener('load', async () => {
+        const savedProgress = localStorage.getItem('quiz_progress');
+
+        try {
+            const response = await fetch('./questions.json');
+            if (response.ok) {
+                const data = await response.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    questions = data;
+                    activeFileName = "questions.json";
+                    updateLiveCounter();
+
+                    // Скрываем зону загрузки
+                    document.querySelector('.upload-section').classList.add('hidden');
+
+                    if (savedProgress) {
+                        resumeContainer.classList.remove('hidden');
+                    } else {
+                        showScreen(quizScreen);
+                        renderQuestion();
+                    }
+                    return;
+                }
+            }
+        } catch (err) {
+            console.log("Автозагрузка недоступна (например, при запуске локально). Используется выбор файла.", err);
+        }
+
+        if (savedProgress) {
+            resumeContainer.classList.remove('hidden');
+        }
+    });
+
+    // Очистить автосохранение
+    clearSaveBtn.addEventListener('click', () => {
+        localStorage.clear();
+        resumeContainer.classList.add('hidden');
+        alert("Память очищена.");
+    });
+
+    // Продолжить прерванный тест
+    resumeBtn.addEventListener('click', () => {
+        const savedQuestions = localStorage.getItem('quiz_questions');
+        const savedIndex = localStorage.getItem('quiz_index');
+        const savedScore = localStorage.getItem('quiz_score');
+        const savedMistakes = localStorage.getItem('quiz_mistakes');
+        const savedAnswers = localStorage.getItem('quiz_answers');
+
+        if (savedQuestions && savedIndex !== null) {
+            questions = JSON.parse(savedQuestions);
+            currentIndex = parseInt(savedIndex);
+            score = parseInt(savedScore || 0);
+            mistakes = JSON.parse(savedMistakes || "[]");
+            userAnswers = JSON.parse(savedAnswers || "{}");
+
+            showScreen(quizScreen);
+            updateLiveCounter();
+            renderQuestion();
+        } else {
+            alert("Не удалось загрузить сохраненную сессию.");
+        }
+    });
+
+    // Обработка загрузки файла (резервный ручной метод)
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        activeFileName = file.name;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                questions = JSON.parse(event.target.result);
+                if (!Array.isArray(questions)) {
+                    throw new Error("Файл должен содержать массив вопросов.");
+                }
+                currentIndex = 0;
+                score = 0;
+                mistakes = [];
+                userAnswers = {};
+
+                updateLiveCounter();
+                saveToLocalStorage();
+                showScreen(quizScreen);
+                renderQuestion();
+            } catch (err) {
+                alert("Ошибка чтения JSON: " + err.message);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // Показ экрана
+    function showScreen(screen) {
+        uploadScreen.classList.add('hidden');
+        quizScreen.classList.add('hidden');
+        resultsScreen.classList.add('hidden');
+        screen.classList.remove('hidden');
+    }
+
+    // Сохранение состояния в LocalStorage
+    function saveToLocalStorage() {
+        localStorage.setItem('quiz_progress', 'true');
+        localStorage.setItem('quiz_questions', JSON.stringify(questions));
+        localStorage.setItem('quiz_index', currentIndex.toString());
+        localStorage.setItem('quiz_score', score.toString());
+        localStorage.setItem('quiz_mistakes', JSON.stringify(mistakes));
+        localStorage.setItem('quiz_answers', JSON.stringify(userAnswers));
+    }
+
+    // Обновление счетчика быстрой выгрузки
+    function updateLiveCounter() {
+        downloadLiveBtn.innerText = `Скачать ошибки (${mistakes.length})`;
+        downloadLiveBtn.disabled = mistakes.length === 0;
+    }
+
+    // Отображение вопроса
+    function renderQuestion() {
+        if (currentIndex >= questions.length) {
+            finishQuiz();
+            return;
+        }
+
+        const q = questions[currentIndex];
+
+        // Обновление прогресс-бара
+        const progressPercent = (currentIndex / questions.length) * 100;
+        progressBar.style.width = `${progressPercent}%`;
+        questionCounter.innerText = `Вопрос ${currentIndex + 1}/${questions.length}`;
+        errorCounter.innerText = mistakes.length;
+
+        // Рендеринг текста вопроса
+        questionId.innerText = `ID: ${q.id}`;
+        questionText.innerText = q.question;
+
+        // Очистка вариантов ответов
+        optionsList.innerHTML = '';
+        feedbackMessage.className = "feedback-message";
+        feedbackMessage.innerText = "";
+
+        // Проверяем, отвечали ли мы уже на этот вопрос
+        const previousAnswer = userAnswers[currentIndex];
+        isAnswered = previousAnswer !== undefined;
+
+        q.options.forEach((option, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = `${index + 1}) ${option}`;
+            btn.disabled = isAnswered;
+
+            if (isAnswered) {
+                const optNum = index + 1;
+                if (optNum === q.correct) {
+                    btn.classList.add('correct');
+                } else if (optNum === previousAnswer) {
+                    btn.classList.add('incorrect');
+                }
+            } else {
+                btn.addEventListener('click', () => handleAnswer(index + 1));
+            }
+
+            optionsList.appendChild(btn);
+        });
+
+        // Навигация и кнопка сброса
+        prevBtn.disabled = currentIndex === 0;
+        nextBtn.disabled = !isAnswered;
+
+        if (isAnswered) {
+            resetBtn.classList.remove('hidden');
+            showFeedback(previousAnswer === q.correct, q.correct);
+        } else {
+            resetBtn.classList.add('hidden');
+        }
+    }
+
+    // Обработка выбора ответа
+    function handleAnswer(selectedNum) {
+        if (isAnswered) return;
+
+        const q = questions[currentIndex];
+        userAnswers[currentIndex] = selectedNum;
+        isAnswered = true;
+
+        const optionButtons = optionsList.querySelectorAll('.option-btn');
+        optionButtons.forEach((btn, index) => {
+            btn.disabled = true;
+            const optNum = index + 1;
+            if (optNum === q.correct) {
+                btn.classList.add('correct');
+            } else if (optNum === selectedNum) {
+                btn.classList.add('incorrect');
+            }
+        });
+
+        const isCorrect = selectedNum === q.correct;
+        if (isCorrect) {
+            score++;
+        } else {
+            if (!mistakes.some(item => item.id === q.id)) {
+                mistakes.push(q);
+            }
+        }
+
+        errorCounter.innerText = mistakes.length;
+        updateLiveCounter();
+        showFeedback(isCorrect, q.correct);
+
+        nextBtn.disabled = false;
+        resetBtn.classList.remove('hidden');
+
+        saveToLocalStorage();
+    }
+
+    // Сброс (отмена) ответа на текущий вопрос
+    resetBtn.addEventListener('click', () => {
+        const previousAnswer = userAnswers[currentIndex];
+        if (previousAnswer === undefined) return;
+
+        const q = questions[currentIndex];
+        const isCorrect = previousAnswer === q.correct;
+
+        if (isCorrect) {
+            score--;
+        } else {
+            // Удаляем этот вопрос из массива ошибок
+            mistakes = mistakes.filter(item => item.id !== q.id);
+        }
+
+        // Очищаем ответ
+        delete userAnswers[currentIndex];
+        isAnswered = false;
+
+        updateLiveCounter();
+        saveToLocalStorage();
+        renderQuestion();
+    });
+
+    // Показ сообщения с результатом ответа
+    function showFeedback(isCorrect, correctNum) {
+        const q = questions[currentIndex];
+        if (isCorrect) {
+            feedbackMessage.innerText = "Правильно!";
+            feedbackMessage.className = "feedback-message success";
+        } else {
+            feedbackMessage.innerText = `Неверно. Правильный ответ: ${correctNum}) ${q.options[correctNum - 1]}`;
+            feedbackMessage.className = "feedback-message danger";
+        }
+    }
+
+    // Кнопки навигации
+    nextBtn.addEventListener('click', () => {
+        currentIndex++;
+        saveToLocalStorage();
+        renderQuestion();
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentIndex > 0) {
+            currentIndex--;
+            saveToLocalStorage();
+            renderQuestion();
+        }
+    });
+
+    // Сохранить и выйти
+    saveExitBtn.addEventListener('click', () => {
+        saveToLocalStorage();
+        alert("Прогресс сохранен. Вы можете закрыть страницу.");
+        showScreen(uploadScreen);
+        resumeContainer.classList.remove('hidden');
+    });
+
+    // Завершение теста
+    function finishQuiz() {
+        progressBar.style.width = '100%';
+        showScreen(resultsScreen);
+        finalScore.innerText = `${score}/${questions.length}`;
+
+        const accuracy = questions.length > 0 ? Math.round((score / questions.length) * 100) : 0;
+        accuracyText.innerText = `Точность ответов: ${accuracy}%`;
+
+        if (mistakes.length === 0) {
+            downloadMistakesBtn.disabled = true;
+            downloadMistakesBtn.innerText = "Ошибок нет!";
+        } else {
+            downloadMistakesBtn.disabled = false;
+            downloadMistakesBtn.innerText = `Скачать ошибки (${mistakes.length} шт.)`;
+        }
+
+        localStorage.clear();
+        resumeContainer.classList.add('hidden');
+    }
+
+    // Скачивание файла с ошибками
+    function triggerDownload() {
+        if (mistakes.length === 0) return;
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(mistakes, null, 4));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "incorrect_questions.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    downloadLiveBtn.addEventListener('click', triggerDownload);
+    downloadMistakesBtn.addEventListener('click', triggerDownload);
+
+    // Начать заново
+    restartBtn.addEventListener('click', () => {
+        localStorage.clear();
+        resumeContainer.classList.add('hidden');
+        showScreen(uploadScreen);
+        fileInput.value = "";
+    });
+</script>
+
+</body>
+</html>
