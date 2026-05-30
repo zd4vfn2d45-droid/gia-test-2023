@@ -50,11 +50,11 @@
             color: var(--primary);
         }
 
-        /* Анимации */
+        /* Системные анимации */
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(8px);
+                transform: translateY(12px);
             }
             to {
                 opacity: 1;
@@ -68,8 +68,32 @@
             75% { transform: translateX(4px); }
         }
 
+        @keyframes pulse-success {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { transform: scale(1.015); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        @keyframes pulse-danger {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { transform: scale(1.015); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        @keyframes slideDownBounce {
+            0% { transform: translateY(-10px) scale(0.97); opacity: 0; }
+            70% { transform: translateY(1px) scale(1.005); opacity: 1; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        @keyframes counterPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.4); color: var(--danger); }
+            100% { transform: scale(1); }
+        }
+
         #uploadScreen, #quizScreen, #resultsScreen {
-            animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         .shake {
@@ -137,7 +161,7 @@
             background-color: var(--primary);
             height: 100%;
             width: 0%;
-            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .stats {
@@ -147,6 +171,15 @@
             font-size: 14px;
             color: var(--text-secondary);
             margin-top: 8px;
+        }
+
+        #errorCounter {
+            display: inline-block;
+            transition: transform 0.2s, color 0.2s;
+        }
+
+        .error-pop {
+            animation: counterPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
         /* Навигация перехода к номеру */
@@ -173,8 +206,8 @@
 
         /* Вопрос и варианты ответов */
         .question-card {
-            /* Мягкая анимация контента внутри карточки при обновлении вопроса */
-            animation: fadeIn 0.15s ease-out;
+            /* Перелистывание карточки */
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .question-meta {
@@ -205,7 +238,7 @@
             text-align: left;
             font-size: 16px;
             cursor: pointer;
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
             align-items: center;
         }
@@ -220,10 +253,17 @@
             transform: scale(0.985);
         }
 
+        /* Затухание неотвеченных вариантов при выводе правильного */
+        .option-btn:disabled:not(.correct):not(.incorrect) {
+            opacity: 0.55;
+            transform: scale(0.98);
+        }
+
         .option-btn:disabled {
             cursor: not-allowed;
         }
 
+        /* Мягкие пульсирующие анимации для верных/неверных кнопок */
         .option-btn.correct {
             background-color: var(--success-light);
             border-color: var(--success);
@@ -231,10 +271,18 @@
             font-weight: 600;
         }
 
+        .option-btn.correct.animated {
+            animation: pulse-success 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
         .option-btn.incorrect {
             background-color: var(--danger-light);
             border-color: var(--danger);
             color: #991b1b;
+        }
+
+        .option-btn.incorrect.animated {
+            animation: pulse-danger 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         /* Обратная связь и кнопка навигации */
@@ -249,19 +297,21 @@
             font-weight: 600;
             text-align: center;
             display: none;
-            animation: fadeIn 0.2s ease-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
 
         .feedback-message.success {
             background-color: var(--success-light);
             color: var(--success);
             display: block;
+            animation: slideDownBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
 
         .feedback-message.danger {
             background-color: var(--danger-light);
             color: var(--danger);
             display: block;
+            animation: slideDownBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
 
         .controls {
@@ -406,7 +456,7 @@
                         <button id="goToSubmit" class="btn-outline" style="padding: 5px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; transition: all 0.15s;">ОК</button>
                     </div>
                 </div>
-                <span>Ошибок: <strong id="errorCounter" style="color: var(--danger)">0</strong></span>
+                <span>Ошибок: <strong id="errorCounter">0</strong></span>
             </div>
         </div>
 
@@ -653,7 +703,7 @@
         questionCard.style.animation = 'none';
         // Триггер перерисовки анимации
         questionCard.offsetHeight;
-        questionCard.style.animation = 'fadeIn 0.15s ease-out';
+        questionCard.style.animation = 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
 
         // Обновление прогресс-бара
         const progressPercent = (currentIndex / questions.length) * 100;
@@ -719,9 +769,10 @@
             btn.disabled = true;
             const optNum = index + 1;
             if (optNum === q.correct) {
-                btn.classList.add('correct');
+                // Добавляем класс 'animated' для воспроизведения плавной пульсации
+                btn.classList.add('correct', 'animated');
             } else if (optNum === selectedNum) {
-                btn.classList.add('incorrect');
+                btn.classList.add('incorrect', 'animated');
             }
         });
 
@@ -732,6 +783,11 @@
             if (!mistakes.some(item => item.id === q.id)) {
                 mistakes.push(q);
             }
+            // Анимация подпрыгивания счетчика ошибок при неверном ответе
+            errorCounter.classList.add('error-pop');
+            errorCounter.addEventListener('animationend', () => {
+                errorCounter.classList.remove('error-pop');
+            }, { once: true });
         }
 
         errorCounter.innerText = mistakes.length;
