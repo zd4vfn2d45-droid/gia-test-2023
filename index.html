@@ -50,6 +50,32 @@
             color: var(--primary);
         }
 
+        /* Анимации */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        #uploadScreen, #quizScreen, #resultsScreen {
+            animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .shake {
+            animation: shake 0.15s ease-in-out 2;
+        }
+
         /* Верхняя панель быстрых действий */
         .utility-bar {
             display: flex;
@@ -111,18 +137,46 @@
             background-color: var(--primary);
             height: 100%;
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .stats {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 14px;
             color: var(--text-secondary);
             margin-top: 8px;
         }
 
+        /* Навигация перехода к номеру */
+        .goto-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .goto-input {
+            width: 80px;
+            padding: 5px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .goto-input:focus {
+            border-color: var(--primary);
+        }
+
         /* Вопрос и варианты ответов */
+        .question-card {
+            /* Мягкая анимация контента внутри карточки при обновлении вопроса */
+            animation: fadeIn 0.15s ease-out;
+        }
+
         .question-meta {
             font-size: 14px;
             color: var(--text-secondary);
@@ -151,7 +205,7 @@
             text-align: left;
             font-size: 16px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
         }
@@ -159,6 +213,11 @@
         .option-btn:hover:not(:disabled) {
             border-color: var(--primary);
             background-color: #faf5ff;
+            transform: translateY(-1px);
+        }
+
+        .option-btn:active:not(:disabled) {
+            transform: scale(0.985);
         }
 
         .option-btn:disabled {
@@ -190,6 +249,7 @@
             font-weight: 600;
             text-align: center;
             display: none;
+            animation: fadeIn 0.2s ease-out;
         }
 
         .feedback-message.success {
@@ -218,7 +278,11 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 15px;
-            transition: background-color 0.2s;
+            transition: all 0.15s ease;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.97);
         }
 
         .btn-primary {
@@ -335,12 +399,18 @@
                 <div class="progress-bar" id="progressBar"></div>
             </div>
             <div class="stats">
-                <span id="questionCounter">Вопрос 0/0</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="questionCounter">Вопрос 0/0</span>
+                    <div class="goto-box" id="goToBox">
+                        <input type="number" id="goToInput" class="goto-input" placeholder="Перейти к №" min="1">
+                        <button id="goToSubmit" class="btn-outline" style="padding: 5px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; transition: all 0.15s;">ОК</button>
+                    </div>
+                </div>
                 <span>Ошибок: <strong id="errorCounter" style="color: var(--danger)">0</strong></span>
             </div>
         </div>
 
-        <div class="question-card">
+        <div class="question-card" id="questionCard">
             <div class="question-meta" id="questionId">ID: 0000</div>
             <div class="question-text" id="questionText">Текст вопроса</div>
             <div class="options-list" id="optionsList">
@@ -400,7 +470,12 @@
     const questionId = document.getElementById('questionId');
     const questionText = document.getElementById('questionText');
     const optionsList = document.getElementById('optionsList');
+    const questionCard = document.getElementById('questionCard');
     const feedbackMessage = document.getElementById('feedbackMessage');
+
+    const goToBox = document.getElementById('goToBox');
+    const goToInput = document.getElementById('goToInput');
+    const goToSubmit = document.getElementById('goToSubmit');
 
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
@@ -425,6 +500,7 @@
                     questions = data;
                     activeFileName = "questions.json";
                     updateLiveCounter();
+                    setupGoToInput();
 
                     // Скрываем зону загрузки
                     document.querySelector('.upload-section').classList.add('hidden');
@@ -444,6 +520,38 @@
 
         if (savedProgress) {
             resumeContainer.classList.remove('hidden');
+        }
+    });
+
+    // Настройка ограничений ввода номера перехода
+    function setupGoToInput() {
+        if (questions.length > 0) {
+            goToInput.max = questions.length;
+        }
+    }
+
+    // Логика перехода к конкретному номеру вопроса
+    function handleGoTo() {
+        const value = parseInt(goToInput.value);
+        if (isNaN(value) || value < 1 || value > questions.length) {
+            // Эффект тряски при ошибке ввода
+            goToBox.classList.add('shake');
+            setTimeout(() => {
+                goToBox.classList.remove('shake');
+            }, 300);
+            return;
+        }
+
+        currentIndex = value - 1;
+        goToInput.value = '';
+        saveToLocalStorage();
+        renderQuestion();
+    }
+
+    goToSubmit.addEventListener('click', handleGoTo);
+    goToInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleGoTo();
         }
     });
 
@@ -469,6 +577,7 @@
             mistakes = JSON.parse(savedMistakes || "[]");
             userAnswers = JSON.parse(savedAnswers || "{}");
 
+            setupGoToInput();
             showScreen(quizScreen);
             updateLiveCounter();
             renderQuestion();
@@ -495,6 +604,7 @@
                 mistakes = [];
                 userAnswers = {};
 
+                setupGoToInput();
                 updateLiveCounter();
                 saveToLocalStorage();
                 showScreen(quizScreen);
@@ -538,6 +648,12 @@
         }
 
         const q = questions[currentIndex];
+
+        // Анимация обновления контента внутри карточки вопроса
+        questionCard.style.animation = 'none';
+        // Триггер перерисовки анимации
+        questionCard.offsetHeight;
+        questionCard.style.animation = 'fadeIn 0.15s ease-out';
 
         // Обновление прогресс-бара
         const progressPercent = (currentIndex / questions.length) * 100;
