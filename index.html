@@ -113,11 +113,12 @@
             border: 2px dashed var(--border);
             border-radius: 12px;
             cursor: pointer;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background-color 0.2s;
         }
 
-        .upload-section:hover {
+        .upload-section:hover, .upload-section.dragover {
             border-color: var(--primary);
+            background-color: #faf5ff;
         }
 
         .upload-btn {
@@ -285,12 +286,11 @@
             animation: pulse-danger 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* ПОЛНОСТЬЮ ОБНОВЛЕННАЯ ОБЛАСТЬ ПОДСКАЗКИ (АККОРДЕОН БЕЗ СДВИГОВ И ПРЫЖКОВ) */
+        /* ОБЛАСТЬ ПОДСКАЗКИ БЕЗ СДВИГОВ И ПРЫЖКОВ */
         .feedback-area {
             max-height: 0;
             opacity: 0;
             overflow: hidden;
-            /* Плавное раскрытие высоты и проявление текста */
             transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
                         opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                         margin-top 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -299,7 +299,7 @@
         }
 
         .feedback-area.visible {
-            max-height: 150px; /* Безопасный запас по высоте для длинных ответов */
+            max-height: 150px;
             opacity: 1;
             margin-top: 20px;
         }
@@ -309,7 +309,7 @@
             border-radius: 8px;
             font-weight: 600;
             text-align: center;
-            display: block; /* Постоянно блочный, контейнер контролирует высоту */
+            display: block;
             box-shadow: 0 2px 4px rgba(0,0,0,0.01);
         }
 
@@ -430,18 +430,29 @@
 <body ontouchstart="">
 
 <div class="container">
-    <!-- ЭКРАН ЗАГРУЗКИ ФАЙЛА -->
+    <!-- ЭКРАН ПОДГОТОВКИ / ЗАГРУЗКИ ФАЙЛА -->
     <div id="uploadScreen">
         <h1>Подготовка к тестированию</h1>
-        <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+        <p style="text-align: center; font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
+            Вы можете загрузить стандартную базу вопросов или файл со своими ошибками (например, <code style="background:#e5e7eb; padding:2px 4px; border-radius:4px;">incorrect_questions.json</code>), чтобы решить их заново.
+        </p>
+        
+        <div class="upload-section" id="uploadDropZone">
             <svg width="48" height="48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" style="color: var(--text-secondary)">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
             </svg>
-            <p style="margin: 10px 0 5px; font-weight: 600;">Выберите файл вопросов questions.json</p>
-            <span style="font-size: 12px; color: var(--text-secondary);">или кликните для обзора файлов</span>
-            <button class="upload-btn">Загрузить JSON</button>
+            <p style="margin: 10px 0 5px; font-weight: 600; text-align: center;">Выберите файл вопросов или ошибок (.json)</p>
+            <span style="font-size: 12px; color: var(--text-secondary); text-align: center;">Перетащите файл сюда или кликните для обзора</span>
+            <button class="upload-btn" type="button">Обзор файлов</button>
             <input type="file" id="fileInput" accept=".json">
         </div>
+
+        <!-- Кнопка запуска встроенного теста (если файл questions.json доступен на сервере) -->
+        <div id="defaultTestContainer" class="hidden" style="margin-top: 20px; text-align: center; padding: 15px; border: 1px solid var(--border); border-radius: 12px;">
+            <p style="margin: 0 0 10px; font-size: 14px; color: var(--text-secondary);">Доступен встроенный тест на сервере:</p>
+            <button class="btn btn-primary" id="loadDefaultBtn" style="width: 100%; max-width: 300px;">Запустить стандартный тест</button>
+        </div>
+
         <div id="resumeContainer" class="hidden" style="margin-top: 25px; text-align: center; padding-top: 20px; border-top: 1px solid var(--border);">
             <p style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Найден сохраненный прогресс для предыдущего теста.</p>
             <button class="btn btn-primary" id="resumeBtn">Продолжить тест</button>
@@ -517,13 +528,19 @@
     let mistakes = [];
     let userAnswers = {};
     let isAnswered = false;
-    let activeFileName = "questions.json";
+    let activeFileName = "";
+    let defaultQuestions = null;
 
     // Элементы DOM
     const fileInput = document.getElementById('fileInput');
+    const uploadDropZone = document.getElementById('uploadDropZone');
     const uploadScreen = document.getElementById('uploadScreen');
     const quizScreen = document.getElementById('quizScreen');
     const resultsScreen = document.getElementById('resultsScreen');
+    
+    const defaultTestContainer = document.getElementById('defaultTestContainer');
+    const loadDefaultBtn = document.getElementById('loadDefaultBtn');
+    
     const resumeContainer = document.getElementById('resumeContainer');
     const resumeBtn = document.getElementById('resumeBtn');
     const clearSaveBtn = document.getElementById('clearSaveBtn');
@@ -554,40 +571,114 @@
     const finalScore = document.getElementById('finalScore');
     const accuracyText = document.getElementById('accuracyText');
 
-    // Автоматическая подгрузка вопросов из файла questions.json при открытии
+    // Проверка автосохранений и доступности стандартного файла на сервере при загрузке
     window.addEventListener('load', async () => {
         const savedProgress = localStorage.getItem('quiz_progress');
 
+        // Проверяем, есть ли на сервере файл questions.json
         try {
             const response = await fetch('./questions.json');
             if (response.ok) {
                 const data = await response.json();
                 if (Array.isArray(data) && data.length > 0) {
-                    questions = data;
-                    activeFileName = "questions.json";
-                    updateLiveCounter();
-                    setupGoToInput();
-
-                    // Скрываем зону загрузки
-                    document.querySelector('.upload-section').classList.add('hidden');
-
-                    if (savedProgress) {
-                        resumeContainer.classList.remove('hidden');
-                    } else {
-                        showScreen(quizScreen);
-                        renderQuestion();
-                    }
-                    return;
+                    defaultQuestions = data;
+                    defaultTestContainer.classList.remove('hidden');
                 }
             }
         } catch (err) {
-            console.log("Автозагрузка недоступна (например, при запуске локально). Используется выбор файла.", err);
+            console.log("Автозагрузка стандартного questions.json недоступна. Используется только ручной выбор файла.", err);
         }
 
         if (savedProgress) {
             resumeContainer.classList.remove('hidden');
         }
     });
+
+    // Клик на область загрузки открывает диалог выбора файлов
+    uploadDropZone.addEventListener('click', (e) => {
+        // Чтобы клик по кнопке внутри контейнера не вызывал повторный клик
+        if (e.target !== fileInput) {
+            fileInput.click();
+        }
+    });
+
+    // Обработка событий Drag & Drop для перетаскивания файлов
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadDropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            uploadDropZone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadDropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            uploadDropZone.classList.remove('dragover');
+        }, false);
+    });
+
+    uploadDropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            // Триггерим событие изменения
+            const event = new Event('change');
+            fileInput.dispatchEvent(event);
+        }
+    });
+
+    // Запуск встроенного теста
+    loadDefaultBtn.addEventListener('click', () => {
+        if (defaultQuestions) {
+            initQuiz(defaultQuestions, "questions.json");
+        }
+    });
+
+    // Запуск пользовательского JSON файла
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const data = JSON.parse(event.target.result);
+                initQuiz(data, file.name);
+            } catch (err) {
+                alert("Не удалось прочитать JSON: " + err.message);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // Инициализация тестирования с переданным набором вопросов
+    function initQuiz(data, fileName) {
+        if (!Array.isArray(data) || data.length === 0) {
+            alert("Файл должен содержать массив вопросов.");
+            return;
+        }
+
+        // Простая проверка структуры вопросов
+        const isValid = data.every(q => q && q.question && Array.isArray(q.options) && typeof q.correct === 'number');
+        if (!isValid) {
+            const proceed = confirm("Внимание: Обнаружены элементы с некорректным форматом. Попробовать запустить тест всё равно?");
+            if (!proceed) return;
+        }
+
+        questions = data;
+        activeFileName = fileName;
+        currentIndex = 0;
+        score = 0;
+        mistakes = [];
+        userAnswers = {};
+
+        setupGoToInput();
+        updateLiveCounter();
+        saveToLocalStorage();
+        showScreen(quizScreen);
+        renderQuestion();
+    }
 
     // Настройка ограничений ввода номера перехода
     function setupGoToInput() {
@@ -600,7 +691,6 @@
     function handleGoTo() {
         const value = parseInt(goToInput.value);
         if (isNaN(value) || value < 1 || value > questions.length) {
-            // Эффект тряски при ошибке ввода
             goToBox.classList.add('shake');
             setTimeout(() => {
                 goToBox.classList.remove('shake');
@@ -652,36 +742,6 @@
         }
     });
 
-    // Обработка загрузки файла (резервный ручной метод)
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        activeFileName = file.name;
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            try {
-                questions = JSON.parse(event.target.result);
-                if (!Array.isArray(questions)) {
-                    throw new Error("Файл должен содержать массив вопросов.");
-                }
-                currentIndex = 0;
-                score = 0;
-                mistakes = [];
-                userAnswers = {};
-
-                setupGoToInput();
-                updateLiveCounter();
-                saveToLocalStorage();
-                showScreen(quizScreen);
-                renderQuestion();
-            } catch (err) {
-                alert("Ошибка чтения JSON: " + err.message);
-            }
-        };
-        reader.readAsText(file);
-    });
-
     // Показ экрана
     function showScreen(screen) {
         uploadScreen.classList.add('hidden');
@@ -715,10 +775,9 @@
 
         const q = questions[currentIndex];
 
-        // Закрываем панель подсказки при смене вопроса без скачков
+        // Закрываем панель подсказки при смене вопроса
         feedbackArea.classList.remove('visible');
 
-        // requestAnimationFrame гарантирует корректный перезапуск 3D-анимации на iOS Safari
         questionCard.style.animation = 'none';
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -733,7 +792,7 @@
         errorCounter.innerText = mistakes.length;
 
         // Рендеринг текста вопроса
-        questionId.innerText = `ID: ${q.id}`;
+        questionId.innerText = `ID: ${q.id || '---'}`;
         questionText.innerText = q.question;
 
         // Очистка вариантов ответов
@@ -788,7 +847,6 @@
             btn.disabled = true;
             const optNum = index + 1;
             if (optNum === q.correct) {
-                // Добавляем класс 'animated' для запуска плавной WebKit-совместимой пульсации
                 btn.classList.add('correct', 'animated');
             } else if (optNum === selectedNum) {
                 btn.classList.add('incorrect', 'animated');
@@ -802,7 +860,6 @@
             if (!mistakes.some(item => item.id === q.id)) {
                 mistakes.push(q);
             }
-            // Анимация подпрыгивания счетчика ошибок при неверном ответе
             errorCounter.classList.add('error-pop');
             errorCounter.addEventListener('animationend', () => {
                 errorCounter.classList.remove('error-pop');
@@ -830,11 +887,9 @@
         if (isCorrect) {
             score--;
         } else {
-            // Удаляем этот вопрос из массива ошибок
             mistakes = mistakes.filter(item => item.id !== q.id);
         }
 
-        // Очищаем ответ
         delete userAnswers[currentIndex];
         isAnswered = false;
 
@@ -855,7 +910,6 @@
             feedbackMessage.className = "feedback-message danger";
         }
         
-        // Плавно открываем панель аккордеона по высоте
         feedbackArea.classList.add('visible');
     }
 
